@@ -9,6 +9,7 @@
 ;;; C-c g l           Magit log
 ;;; C-c g f           Magit file log
 ;;; C-c g b           Toggle Magit blame mode
+;;; C-c g c           Magit clone
 ;;;
 ;;; C-c g down        Goto next hunk in buffer
 ;;; C-c g n           Goto next hunk in buffer
@@ -20,13 +21,20 @@
 ;;; Magit
 (require 'magit)
 
+(defun exordium-magit-log ()
+  "If in `dired-mode', call `magit-dired-log'. Otherwise call
+`magit-log-current (or `magit-log' if former not present)."
+    (interactive)
+    (if (eq 'dired-mode major-mode)
+        (call-interactively 'magit-dired-log)
+      (if (fboundp 'magit-log-current)
+          (call-interactively 'magit-log-current)
+        (call-interactively 'magit-log))))
+
 ;;; Keys
 (define-prefix-command 'exordium-git-map nil)
 (define-key exordium-git-map (kbd "s") (function magit-status))
-(define-key exordium-git-map (kbd "l")
-  (if (fboundp 'magit-log-current)
-      (function magit-log-current)
-    (function magit-log)))
+(define-key exordium-git-map (kbd "l") 'exordium-magit-log)
 (define-key exordium-git-map (kbd "f")
   (if (fboundp 'magit-log-buffer-file)
       (function magit-log-buffer-file)
@@ -35,6 +43,7 @@
   (if (fboundp 'magit-blame)
       (function magit-blame)
     (function magit-blame-mode)))
+(define-key exordium-git-map (kbd "c") (function magit-clone))
 (global-set-key (kbd "C-c g") 'exordium-git-map)
 
 ;;; Make `magit-status' run alone in the frame, and then restore the old window
@@ -115,7 +124,13 @@
 
 ;;; Git Grep
 
-(define-key exordium-git-map (kbd "g") (function vc-git-grep))
+(define-key exordium-git-map (kbd "g")
+  (if exordium-helm-everywhere
+      (lambda()
+        (interactive)
+        (setq current-prefix-arg '(4))
+        (call-interactively 'helm-grep-do-git-grep))
+    (function vc-git-grep)))
 
 
 ;;; Make backtick an electric pair
